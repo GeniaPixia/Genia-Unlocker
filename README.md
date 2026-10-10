@@ -20,6 +20,23 @@ Highlights since v0.4.1 Final:
 
 RC1 was accepted after real Windows testing of Word/Office locks, normal Unlock, Force Unlock, Terminate, Delete/Unlock & Delete, tray behavior and dark/light Flat UX.
 
+
+## Screenshots
+
+### Dark theme
+
+![Genia Unlocker — dark theme](docs/screenshots/dark-main.webp)
+
+### Light theme
+
+![Genia Unlocker — light theme](docs/screenshots/light-main.webp)
+
+### Detecting a locked Microsoft Word document
+
+![Genia Unlocker detecting Microsoft Word as a file lock owner](docs/screenshots/word-lock.webp)
+
+The screenshots show the native Win32 interface and a real lock-detection test using a sample Office document.
+
 ## Portable policy
 
 The distributable remains:
