@@ -19,13 +19,13 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "CompanyName", "GeniaSoftWin\0"
+            VALUE "CompanyName", "GeniaPixia\0"
             VALUE "FileDescription", "Genia Unlocker\0"
             VALUE "FileVersion", "0.5.0.7\0"
             VALUE "InternalName", "GeniaUnlocker\0"
             VALUE "OriginalFilename", "GeniaUnlocker.exe\0"
             VALUE "ProductName", "Genia Unlocker\0"
-            VALUE "LegalCopyright", "Copyright © 2026 GeniaSoftWin\0"
+            VALUE "LegalCopyright", "Copyright © 2026 GeniaPixia\0"
             VALUE "ProductVersion", "0.5.0 Final\0"
         END
     END

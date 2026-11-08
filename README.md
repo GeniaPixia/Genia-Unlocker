@@ -20,6 +20,27 @@ Highlights since v0.4.1 Final:
 
 RC1 was accepted after real Windows testing of Word/Office locks, normal Unlock, Force Unlock, Terminate, Delete/Unlock & Delete, tray behavior and dark/light Flat UX.
 
+
+## Screenshots
+
+### Dark theme
+
+![Genia Unlocker — dark theme](docs/screenshots/dark-main.webp)
+
+### Light theme
+
+![Genia Unlocker — light theme](docs/screenshots/light-main.webp)
+
+### Detecting a locked Microsoft Word document
+
+![Genia Unlocker detecting Microsoft Word as a file lock owner](docs/screenshots/word-lock.webp)
+
+The screenshots show the native Win32 interface and a real lock-detection test using a sample Office document.
+
+## Development
+
+The latest stable release is **v0.5.0 Final**. Active development continues in [`v0.6.0-dev`](https://github.com/GeniaPixia/Genia-Unlocker/tree/v0.6.0-dev), with the [v0.6.0 roadmap](docs/ROADMAP-v0.6.0.md) covering multi-target batch operations, CLI support, and extended diagnostics. Development builds are not official releases.
+
 ## Portable policy
 
 The distributable remains:

@@ -35,8 +35,8 @@ namespace {
 constexpr wchar_t kWindowClass[] = L"GeniaUnlockerWindow";
 constexpr wchar_t kWindowTitle[] = L"Genia Unlocker";
 constexpr wchar_t kAppVersionDisplay[] = L"0.5.0 Final";
-constexpr wchar_t kRepositoryUrl[] = L"https://github.com/geniasoftwin/Genia-Unlocker";
-constexpr wchar_t kIssuesUrl[] = L"https://github.com/geniasoftwin/Genia-Unlocker/issues/new";
+constexpr wchar_t kRepositoryUrl[] = L"https://github.com/GeniaPixia/Genia-Unlocker";
+constexpr wchar_t kIssuesUrl[] = L"https://github.com/GeniaPixia/Genia-Unlocker/issues/new";
 constexpr wchar_t kSettingsWindowClass[] = L"GeniaUnlockerSettingsWindow";
 constexpr wchar_t kAboutWindowClass[] = L"GeniaUnlockerAboutWindow";
 constexpr wchar_t kDetailsWindowClass[] = L"GeniaUnlockerDetailsWindow";
@@ -768,7 +768,7 @@ struct AboutState {
 
 std::wstring BuildVersionInfoText() {
     return L"Genia Unlocker " + std::wstring(kAppVersionDisplay) +
-           L"\r\nAuthor: GeniaSoftWin"
+           L"\r\nAuthor: GeniaPixia"
            L"\r\nLicense: MIT"
            L"\r\nPlatform: Windows x64 · Native Win32 C++"
            L"\r\nSource: " + std::wstring(kRepositoryUrl);
@@ -884,18 +884,18 @@ LRESULT CALLBACK AboutWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
             RECT metaRc{sc(18), sc(136), rc.right - sc(18), sc(199)};
             const wchar_t* meta =
-                L"Author: GeniaSoftWin\r\n"
+                L"Author: GeniaPixia\r\n"
                 L"License: MIT\r\n"
                 L"Platform: Windows x64 · Native Win32 C++";
             DrawTextW(dc, meta, -1, &metaRc, DT_LEFT | DT_TOP);
 
             SetTextColor(dc, app->palette.muted);
             RECT sourceRc{sc(18), sc(201), rc.right - sc(18), sc(222)};
-            DrawTextW(dc, L"Source: github.com/geniasoftwin/Genia-Unlocker",
+            DrawTextW(dc, L"Source: github.com/GeniaPixia/Genia-Unlocker",
                       -1, &sourceRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
             RECT copyrightRc{sc(18), sc(220), rc.right - sc(18), sc(236)};
-            DrawTextW(dc, L"Copyright © 2026 GeniaSoftWin",
+            DrawTextW(dc, L"Copyright © 2026 GeniaPixia",
                       -1, &copyrightRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
             if (oldFont) SelectObject(dc, oldFont);
