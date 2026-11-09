@@ -3,7 +3,9 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "v0.6.0"
+    branches:
+      - "v0.6.0-dev"
   workflow_dispatch:
 
 permissions:
@@ -42,8 +44,18 @@ jobs:
           }
 
           $version = (Get-Item -LiteralPath $exe).VersionInfo.FileVersion
-          if ($version -ne "0.5.0.7") {
+          if ($version -ne "0.6.0.0") {
             throw "Unexpected FileVersion: $version"
+          }
+
+          $productVersion = (Get-Item -LiteralPath $exe).VersionInfo.ProductVersion
+          if ($productVersion -ne "0.6.0 Final") {
+            throw "Unexpected ProductVersion: $productVersion"
+          }
+
+          if ($env:GITHUB_EVENT_NAME -eq "push" -and
+              $env:GITHUB_REF -notin @("refs/tags/v0.6.0", "refs/heads/v0.6.0-dev")) {
+            throw "Unexpected release ref."
           }
 
           $stage = Join-Path $PWD "release-stage"
@@ -55,16 +67,18 @@ jobs:
           Copy-Item -LiteralPath "RELEASE-NOTES.md" -Destination $stage
           Copy-Item -LiteralPath "LICENSE" -Destination $stage
 
-          $zip = Join-Path $PWD "Genia-Unlocker-v0.5.0-Windows-x64-Portable.zip"
+          $zip = Join-Path $PWD "Genia-Unlocker-v0.6.0-Windows-x64-Portable.zip"
           if (Test-Path -LiteralPath $zip) {
             Remove-Item -LiteralPath $zip -Force
           }
 
+          $files = @(Get-ChildItem -LiteralPath $stage -File)
+          if ($files.Count -ne 5) { throw "Expected exactly five portable files." }
           Compress-Archive -Path "$stage\*" -DestinationPath $zip -CompressionLevel Optimal
 
           $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
-          $hashFile = Join-Path $PWD "Genia-Unlocker-v0.5.0-Windows-x64-Portable-SHA256.txt"
-          Set-Content -LiteralPath $hashFile -Value "$hash  Genia-Unlocker-v0.5.0-Windows-x64-Portable.zip" -Encoding ascii
+          $hashFile = Join-Path $PWD "Genia-Unlocker-v0.6.0-Windows-x64-Portable-SHA256.txt"
+          Set-Content -LiteralPath $hashFile -Value "$hash  Genia-Unlocker-v0.6.0-Windows-x64-Portable.zip" -Encoding ascii
 
           "zip=$zip" >> $env:GITHUB_OUTPUT
           "hash=$hashFile" >> $env:GITHUB_OUTPUT
@@ -72,18 +86,18 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Genia-Unlocker-v0.5.0-Windows-x64-Portable
+          name: Genia-Unlocker-v0.6.0-Windows-x64-Portable
           path: |
-            Genia-Unlocker-v0.5.0-Windows-x64-Portable.zip
-            Genia-Unlocker-v0.5.0-Windows-x64-Portable-SHA256.txt
+            Genia-Unlocker-v0.6.0-Windows-x64-Portable.zip
+            Genia-Unlocker-v0.6.0-Windows-x64-Portable-SHA256.txt
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/tags/v0.6.0'
         uses: softprops/action-gh-release@v2
         with:
-          name: Genia Unlocker v0.5.0 Final
+          name: Genia Unlocker v0.6.0 Final
           body_path: RELEASE-NOTES.md
           files: |
-            Genia-Unlocker-v0.5.0-Windows-x64-Portable.zip
-            Genia-Unlocker-v0.5.0-Windows-x64-Portable-SHA256.txt
+            Genia-Unlocker-v0.6.0-Windows-x64-Portable.zip
+            Genia-Unlocker-v0.6.0-Windows-x64-Portable-SHA256.txt
           generate_release_notes: false

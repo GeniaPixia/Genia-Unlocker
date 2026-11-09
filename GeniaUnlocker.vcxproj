@@ -171,11 +171,13 @@
 
   <ItemGroup>
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\BatchScanWindow.cpp" />
     <ClCompile Include="src\ModernTheme.cpp" />
     <ClCompile Include="src\LockScanner.cpp" />
     <ClCompile Include="src\WindowsIntegration.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\BatchScanWindow.h" />
     <ClInclude Include="src\LockScanner.h" />
     <ClInclude Include="src\ModernTheme.h" />
     <ClInclude Include="src\WindowsIntegration.h" />

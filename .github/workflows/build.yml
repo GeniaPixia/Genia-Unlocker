@@ -2,9 +2,9 @@ name: Windows build
 
 on:
   push:
-    branches: [ main, v0.5.0-dev ]
+    branches: [ main, v0.6.0-dev ]
   pull_request:
-    branches: [ main, v0.5.0-dev ]
+    branches: [ main, v0.6.0-dev ]
   workflow_dispatch:
 
 permissions:

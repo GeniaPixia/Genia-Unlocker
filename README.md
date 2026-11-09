@@ -1,6 +1,20 @@
-# Genia Unlocker 0.5.0 — Final
+# Genia Unlocker 0.6.0 — Final
 
 A lightweight native Windows file/folder unlocker built for **Visual Studio 2026**, x64 and the current Windows 11 SDK.
+
+## v0.6.0 Final
+
+**What's new:** Read-only **Batch Scan** for up to 64 files or folders.
+Select multiple items or drag them into the main window, see individual
+Clean / Locked / Locked (unknown) / Missing / Review results, blocking
+processes, PIDs, full paths, per-target scan times and progressive updates.
+The list and details follow the dark/light Flat UX theme.
+
+Double-click a target or choose **Open selected** to switch to the established
+single-target Unlock/Delete workflow. **Batch itself does not perform any
+mass unlocking, process termination or deletion.**
+
+**[Download the official v0.6.0 Final](https://github.com/GeniaPixia/Genia-Unlocker/releases/tag/v0.6.0)**
 
 ## v0.5.0 Final
 
@@ -36,6 +50,12 @@ RC1 was accepted after real Windows testing of Word/Office locks, normal Unlock,
 ![Genia Unlocker detecting Microsoft Word as a file lock owner](docs/screenshots/word-lock.webp)
 
 The screenshots show the native Win32 interface and a real lock-detection test using a sample Office document.
+
+## Development
+
+Latest stable release: **v0.6.0 Final**. CLI automation and extended
+failure classification remain ideas for subsequent versions, **not features
+of the v0.6.0 binary**. See the [roadmap](docs/ROADMAP-v0.6.0.md).
 
 ## Portable policy
 

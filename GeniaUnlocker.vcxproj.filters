@@ -7,11 +7,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Main.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\BatchScanWindow.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\LockScanner.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\WindowsIntegration.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\ModernTheme.cpp"><Filter>Source Files</Filter></ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\BatchScanWindow.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\LockScanner.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\WindowsIntegration.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\ModernTheme.h"><Filter>Header Files</Filter></ClInclude>

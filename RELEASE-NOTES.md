@@ -1,50 +1,48 @@
-# Genia Unlocker v0.5.0 Final
+# Genia Unlocker v0.6.0 Final
 
-**Release date:** 2026-10-05  
-**Platform:** Windows 11 / x64  
-**Build:** Native Win32 C++, portable, static MSVC runtime (`/MT`)  
-**Executable metadata:** FileVersion 0.5.0.7 / ProductVersion 0.5.0 Final
+**Release date:** 2026-11-09  
+**Publisher:** GeniaPixia  
+**Platform:** Windows 11 x64  
+**Build:** native Win32 C++, portable, static MSVC runtime (`/MT`)  
+**FileVersion:** `0.6.0.0`  
+**ProductVersion:** `0.6.0 Final`
 
-## Release decision
+## New in this release
 
-v0.5.0 Final is promoted from the Windows-tested RC1 codebase. Functional scanner, unlock and delete logic is unchanged after RC1 acceptance; Final only changes release/version metadata and packaging.
+- Read-only Batch Scan for up to 64 unique file or folder targets.
+- Select multiple files/folders or drag multiple targets into the main window.
+- Independent asynchronous results with progressive updates and scan timing.
+- Individual Clean / Locked / Locked (unknown) / Missing / Review status.
+- Blocking process names and PIDs; full target paths and lock-object details.
+- Themed dark/light Batch header, selection details, hover diagnostics.
+- Open selected / double-click to switch back to the original single-target workflow.
+- Author identity, source code and issue URLs updated to GeniaPixia.
 
-The RC pass included real Microsoft Word/Excel/Access lock scenarios, normal Unlock, Force Unlock, Terminate, Delete / Unlock & Delete, tray tooltip behavior and Flat UX checks.
+## Verification
 
-## Highlights
+- Windows x64 portable build verified in GitHub Actions.
+- Real-Windows Batch test checked ten files: nine clean, one blocked by Microsoft Word.
+- Batch-to-single-target navigation and ordinary Unlock tested with Word;
+  the Word process closed normally and the file was subsequently deleted.
+- Full automated end-to-end GUI regression coverage is not claimed.
 
-- New Flat UX for dark and light Windows themes.
-- Themed Settings, About, Details and confirmation windows.
-- Correct Microsoft Word / Office lock detection through Restart Manager/native scanning.
-- Fixed File ObjectTypeIndex detection in the native handle scanner.
-- Target-level delete-share verification.
-- System-wide inaccessible handles no longer falsely mark the selected target as locked.
-- Scan duration and clearer diagnostics.
-- Context-sensitive Delete / Unlock & Delete.
-- Adaptive Explorer/tray/context-menu icon.
-- Portable window-size and table-column persistence.
-- Windows 11 tray tooltip fix.
-- Per-monitor DPI hardening.
+## Safety and scope
 
-## Force Unlock behavior
+Batch is diagnostic only: no bulk Force Unlock, Terminate, Delete or Unlock.
+The proven single-target action engine and its confirmations remain unchanged.
+CLI commands and the proposed advanced failure-classification module are **not**
+included in v0.6.0 Final.
 
-Force Unlock closes only matching file handles when possible. The owning application remains running; after a clean rescan the released file can be renamed or deleted without terminating the whole process.
+The program installs no service, driver or heavy runtime. Some kernel/protected
+process, minifilter, image-mapped and unusual filesystem locks cannot be
+resolved safely from user mode.
 
 ## Portable package
 
-The release ZIP contains:
-- `GeniaUnlocker.exe`
-- `README.md`
-- `CHANGELOG.md`
-- `RELEASE-NOTES.md`
-- `LICENSE`
+Exactly five files: `GeniaUnlocker.exe`, `README.md`, `CHANGELOG.md`,
+`RELEASE-NOTES.md`, and `LICENSE`.
 
-No installer, service, driver, .NET runtime, Qt, WebView2 or helper DLL is required.
+The binary is unsigned; SmartScreen might show an unknown-publisher or
+unknown-reputation warning. Official GitHub Releases provide the ZIP SHA256.
 
-## SmartScreen / signing
-
-The current build is unsigned. Windows SmartScreen can therefore show an unknown-reputation warning on newly downloaded copies. This is separate from the functional release acceptance and can be addressed later with trusted Authenticode code signing.
-
-## Scope
-
-Genia Unlocker remains a user-mode utility. Protected-process, kernel/minifilter, antivirus or unusual filesystem locks can still require operating-system-level handling.
+**Source:** https://github.com/GeniaPixia/Genia-Unlocker

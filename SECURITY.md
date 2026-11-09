@@ -6,8 +6,8 @@ Security fixes are provided for the latest stable release of Genia Unlocker.
 
 | Version | Supported |
 | --- | --- |
-| 0.4.1 | Yes |
-| Older releases | No |
+| 0.6.0 | Yes |
+| 0.5.0 and older | No |
 
 ## Reporting a vulnerability
 
