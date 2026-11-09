@@ -13,6 +13,14 @@ Every v0.6.0 feature must do at least one of two things:
 
 If a feature does neither, it does not belong in v0.6.0.
 
+## Phase 1 implementation status
+
+- [x] Read-only Batch window with isolated per-target results.
+- [x] Multiple file/folder selection and multi-drop entry point.
+- [x] Open a Batch row in the existing single-target UI.
+- [ ] Per-target details, progress updates and cancellation UI.
+- [ ] Destructive Batch actions (require a separate safety review and Windows tests).
+
 ## Phase 1 — Multi-target / Batch
 
 Goal: inspect and act on multiple selected files/folders without turning Genia Unlocker into a file manager.

@@ -17,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+#include "BatchScanWindow.h"
 #include "LockScanner.h"
 #include "ModernTheme.h"
 #include "WindowsIntegration.h"
@@ -34,7 +35,7 @@ namespace {
 
 constexpr wchar_t kWindowClass[] = L"GeniaUnlockerWindow";
 constexpr wchar_t kWindowTitle[] = L"Genia Unlocker";
-constexpr wchar_t kAppVersionDisplay[] = L"0.5.0 Final";
+constexpr wchar_t kAppVersionDisplay[] = L"0.6.0 Dev";
 constexpr wchar_t kRepositoryUrl[] = L"https://github.com/GeniaPixia/Genia-Unlocker";
 constexpr wchar_t kIssuesUrl[] = L"https://github.com/GeniaPixia/Genia-Unlocker/issues/new";
 constexpr wchar_t kSettingsWindowClass[] = L"GeniaUnlockerSettingsWindow";
@@ -60,6 +61,7 @@ constexpr int IDC_UNLOCK_DELETE = 1016;
 constexpr int IDC_SETTINGS = 1017;
 constexpr int IDC_DETAILS = 1018;
 constexpr int IDC_FORCE_UNLOCK = 1019;
+constexpr int IDC_BATCH = 1020;
 
 constexpr int IDC_SETTINGS_TITLE = 2001;
 constexpr int IDC_SETTINGS_SHELL = 2002;
@@ -438,7 +440,7 @@ void ApplyFonts(AppState* state) {
     if (!state || !state->hwnd) return;
     for (int id : {IDC_TARGET, IDC_FILE, IDC_FOLDER, IDC_LIST, IDC_UNLOCK, IDC_FORCE_UNLOCK,
                    IDC_TERMINATE, IDC_DELETE, IDC_UNLOCK_DELETE, IDC_RETRY, IDC_STATUS,
-                   IDC_TARGET_LABEL, IDC_SETTINGS, IDC_DETAILS}) {
+                   IDC_TARGET_LABEL, IDC_SETTINGS, IDC_DETAILS, IDC_BATCH}) {
         SetFont(GetDlgItem(state->hwnd, id), state->font);
     }
     SetFont(GetDlgItem(state->hwnd, IDC_APP_TITLE), state->titleFont);
@@ -3369,6 +3371,7 @@ void LayoutControls(AppState* state, int width, int height) {
     const int buttonH = Scale(state, 28);
     const int chooseFileW = Scale(state, 72);
     const int chooseFolderW = Scale(state, 80);
+    const int batchW = Scale(state, 72);
     const int settingsW = Scale(state, 78);
 
     int y = Scale(state, 9);
@@ -3382,7 +3385,7 @@ void LayoutControls(AppState* state, int width, int height) {
                Scale(state, 80), Scale(state, 15), TRUE);
     y += Scale(state, 16);
 
-    int targetW = width - margin * 2 - chooseFileW - chooseFolderW - gap * 2;
+    int targetW = width - margin * 2 - chooseFileW - chooseFolderW - batchW - gap * 3;
     if (targetW < Scale(state, 210)) targetW = Scale(state, 210);
     MoveWindow(state->targetEdit, margin, y, targetW, buttonH, TRUE);
     CenterEditContent(state->targetEdit, state->dpi);
@@ -3391,6 +3394,9 @@ void LayoutControls(AppState* state, int width, int height) {
     MoveWindow(GetDlgItem(state->hwnd, IDC_FOLDER),
                margin + targetW + gap + chooseFileW + gap, y,
                chooseFolderW, buttonH, TRUE);
+    MoveWindow(GetDlgItem(state->hwnd, IDC_BATCH),
+               margin + targetW + chooseFileW + chooseFolderW + gap * 3, y,
+               batchW, buttonH, TRUE);
 
     const int listTop = y + buttonH + Scale(state, 7);
     const int bottomArea = Scale(state, 66);
@@ -3472,6 +3478,8 @@ void CreateControls(AppState* state) {
         0, 0, 0, 0, state->hwnd, ControlId(IDC_FILE), nullptr, nullptr);
     CreateWindowW(L"BUTTON", L"Folder...", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_OWNERDRAW,
         0, 0, 0, 0, state->hwnd, ControlId(IDC_FOLDER), nullptr, nullptr);
+    CreateWindowW(L"BUTTON", L"Batch...", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_OWNERDRAW,
+        0, 0, 0, 0, state->hwnd, ControlId(IDC_BATCH), nullptr, nullptr);
 
     state->list = CreateWindowExW(0, WC_LISTVIEWW, L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER |
@@ -3650,11 +3658,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
     case WM_DROPFILES: {
         HDROP drop = reinterpret_cast<HDROP>(wParam);
-        wchar_t path[32768]{};
-        if (DragQueryFileW(drop, 0, path, static_cast<UINT>(_countof(path))) > 0) {
-            SetTarget(state, path);
+        const UINT count = DragQueryFileW(drop, 0xFFFFFFFF, nullptr, 0);
+        std::vector<std::wstring> paths;
+        paths.reserve((std::min)(count, 256u));
+        for (UINT i = 0; i < count && i < 256u; ++i) {
+            const UINT length = DragQueryFileW(drop, i, nullptr, 0);
+            if (length == 0 || length >= 32768) continue;
+            std::wstring path(length + 1, L'\0');
+            if (DragQueryFileW(drop, i, path.data(), length + 1) == length) {
+                path.resize(length);
+                paths.push_back(std::move(path));
+            }
         }
         DragFinish(drop);
+        if (paths.size() == 1) {
+            SetTarget(state, paths.front());
+        } else if (!paths.empty()) {
+            ShowBatchScanWindow(hwnd, paths);
+        }
         return 0;
     }
 
@@ -3666,6 +3687,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         } else if (id == IDC_FOLDER) {
             std::wstring path = PickPath(hwnd, true);
             if (!path.empty()) SetTarget(state, path);
+        } else if (id == IDC_BATCH) {
+            ShowBatchScanWindow(hwnd);
         } else if (id == IDC_UNLOCK) {
             GracefulUnlock(state);
         } else if (id == IDC_FORCE_UNLOCK) {

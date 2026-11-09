@@ -41,6 +41,19 @@ The screenshots show the native Win32 interface and a real lock-detection test u
 
 The latest stable release is **v0.5.0 Final**. Active development continues in [`v0.6.0-dev`](https://github.com/GeniaPixia/Genia-Unlocker/tree/v0.6.0-dev), with the [v0.6.0 roadmap](docs/ROADMAP-v0.6.0.md) covering multi-target batch operations, CLI support, and extended diagnostics. Development builds are not official releases.
 
+### v0.6.0 Dev — Batch scanner preview
+
+The `v0.6.0-dev` branch contains a **read-only multi-target Batch scanner**.
+Use **Batch...** to add multiple files or folders, or drag two or more items onto the
+main window. Each target is scanned independently with the proven Restart Manager
+and native handle scanner. Statuses are Clean / Locked / Locked (unknown) / Missing /
+Review, with known blocking processes and scan timing. Double-click a Batch row
+or choose **Open selected** to return to the existing single-target workflow.
+
+**Safety boundary:** the Batch window never invokes Unlock, Force Unlock, Terminate,
+or Delete. This is a development preview, not an official release. Verify on Windows
+before shipping.
+
 ## Portable policy
 
 The distributable remains:
