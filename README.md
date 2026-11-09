@@ -47,7 +47,9 @@ The `v0.6.0-dev` branch contains a **read-only multi-target Batch scanner**.
 Use **Batch...** to add multiple files or folders, or drag two or more items onto the
 main window. Each target is scanned independently with the proven Restart Manager
 and native handle scanner. Statuses are Clean / Locked / Locked (unknown) / Missing /
-Review, with known blocking processes and scan timing. Double-click a Batch row
+Review, with known blocking processes and per-target scan timing. The UI now
+updates results progressively, uses a theme-matched table header, and provides full
+paths and scan details via the selection pane and hover tooltip. Double-click a Batch row
 or choose **Open selected** to return to the existing single-target workflow.
 
 **Safety boundary:** the Batch window never invokes Unlock, Force Unlock, Terminate,

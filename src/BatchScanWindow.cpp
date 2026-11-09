@@ -23,6 +23,7 @@ namespace {
 
 constexpr wchar_t kBatchClass[] = L"GeniaUnlocker.BatchScanWindow";
 constexpr UINT WM_BATCH_DONE = WM_APP + 72;
+constexpr UINT WM_BATCH_PROGRESS = WM_APP + 73;
 constexpr int kMaxTargets = 64;
 
 enum : int {
@@ -34,11 +35,13 @@ enum : int {
     IDC_BATCH_OPEN = 7106,
     IDC_BATCH_CLOSE = 7107,
     IDC_BATCH_TITLE = 7108,
+    IDC_BATCH_DETAILS = 7109,
 };
 
 struct BatchEntry {
     ScanResult scan;
     ULONGLONG elapsedMs{};
+    bool completed{};
 };
 
 struct BatchPayload {
@@ -46,11 +49,18 @@ struct BatchPayload {
     std::vector<BatchEntry> entries;
 };
 
+struct BatchProgressPayload {
+    unsigned long long generation{};
+    size_t index{};
+    BatchEntry entry;
+};
+
 struct BatchState {
     HWND hwnd{};
     HWND owner{};
     HWND list{};
     HWND status{};
+    HWND details{};
     HFONT font{};
     HFONT titleFont{};
     HBRUSH background{};
@@ -59,6 +69,7 @@ struct BatchState {
     int dpi{96};
     std::vector<std::wstring> targets;
     std::vector<BatchEntry> results;
+    size_t completedCount{};
     unsigned long long generation{};
     bool busy{};
     std::shared_ptr<std::atomic<bool>> cancelled;
@@ -75,6 +86,74 @@ int S(const BatchState* b, int v) {
     return MulDiv(v, b->dpi, 96);
 }
 
+
+// Draw the header with the same Flat palette as the stable single-target UI.
+// SetWindowTheme alone does not prevent a white native header in dark mode.
+LRESULT CALLBACK BatchHeaderSubclassProc(HWND hwnd, UINT message, WPARAM wParam,
+                                         LPARAM lParam, UINT_PTR id, DWORD_PTR context) {
+    auto* b = reinterpret_cast<BatchState*>(context);
+    switch (message) {
+    case WM_ERASEBKGND:
+        return 1;
+    case WM_PAINT:
+        if (b) {
+            PAINTSTRUCT ps{};
+            HDC dc = BeginPaint(hwnd, &ps);
+            RECT client{};
+            GetClientRect(hwnd, &client);
+            const COLORREF fill = b->palette.dark ? b->palette.surface
+                                                   : b->palette.window;
+            HBRUSH bg = CreateSolidBrush(fill);
+            FillRect(dc, &client, bg);
+            DeleteObject(bg);
+
+            HFONT font = b->font ? b->font :
+                reinterpret_cast<HFONT>(SendMessageW(hwnd, WM_GETFONT, 0, 0));
+            HGDIOBJ oldFont = font ? SelectObject(dc, font) : nullptr;
+            SetBkMode(dc, TRANSPARENT);
+            SetTextColor(dc, b->palette.text);
+            HPEN separator = CreatePen(PS_SOLID, 1, b->palette.border);
+            HGDIOBJ oldPen = SelectObject(dc, separator);
+
+            for (int i = 0; i < Header_GetItemCount(hwnd); ++i) {
+                RECT rc{};
+                if (!Header_GetItemRect(hwnd, i, &rc)) continue;
+                wchar_t name[256]{};
+                HDITEMW item{};
+                item.mask = HDI_TEXT | HDI_FORMAT;
+                item.pszText = name;
+                item.cchTextMax = static_cast<int>(_countof(name));
+                Header_GetItem(hwnd, i, &item);
+                MoveToEx(dc, rc.right - 1, rc.top, nullptr);
+                LineTo(dc, rc.right - 1, rc.bottom);
+                MoveToEx(dc, rc.left, rc.bottom - 1, nullptr);
+                LineTo(dc, rc.right, rc.bottom - 1);
+                RECT text = rc;
+                text.left += S(b, 7);
+                text.right -= S(b, 6);
+                UINT format = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
+                format |= (item.fmt & HDF_RIGHT) ? DT_RIGHT :
+                          (item.fmt & HDF_CENTER) ? DT_CENTER : DT_LEFT;
+                DrawTextW(dc, name, -1, &text, format);
+            }
+            SelectObject(dc, oldPen);
+            DeleteObject(separator);
+            if (oldFont) SelectObject(dc, oldFont);
+            EndPaint(hwnd, &ps);
+            return 0;
+        }
+        break;
+    case WM_THEMECHANGED:
+    case WM_SETTINGCHANGE:
+        InvalidateRect(hwnd, nullptr, TRUE);
+        return 0;
+    case WM_NCDESTROY:
+        RemoveWindowSubclass(hwnd, BatchHeaderSubclassProc, id);
+        break;
+    }
+    return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
 void ApplyBatchFonts(BatchState* b) {
     if (b->font) DeleteObject(b->font);
     if (b->titleFont) DeleteObject(b->titleFont);
@@ -86,7 +165,7 @@ void ApplyBatchFonts(BatchState* b) {
         CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
     for (int id : {IDC_BATCH_LIST, IDC_BATCH_STATUS, IDC_BATCH_ADD_FILES,
                    IDC_BATCH_ADD_FOLDERS, IDC_BATCH_SCAN, IDC_BATCH_OPEN,
-                   IDC_BATCH_CLOSE}) {
+                   IDC_BATCH_CLOSE, IDC_BATCH_DETAILS}) {
         SendMessageW(GetDlgItem(b->hwnd, id), WM_SETFONT,
                      reinterpret_cast<WPARAM>(b->font), TRUE);
     }
@@ -102,10 +181,14 @@ void ApplyBatchTheme(BatchState* b) {
     b->surface = CreateSolidBrush(b->palette.surface);
     ModernTheme::ApplyWindowChrome(b->hwnd, b->palette.dark);
     ModernTheme::ApplyControlTheme(b->list, b->palette.dark);
+    ModernTheme::ApplyControlTheme(b->details, b->palette.dark);
     ModernTheme::ApplyControlTheme(ListView_GetHeader(b->list), b->palette.dark);
     ListView_SetBkColor(b->list, b->palette.surface);
     ListView_SetTextBkColor(b->list, b->palette.surface);
     ListView_SetTextColor(b->list, b->palette.text);
+    if (HWND header = ListView_GetHeader(b->list)) {
+        InvalidateRect(header, nullptr, TRUE);
+    }
     RedrawWindow(b->hwnd, nullptr, nullptr,
                  RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_FRAME);
 }
@@ -117,11 +200,14 @@ void LayoutBatch(BatchState* b, int w, int h) {
     const int titleH = S(b, 27);
     MoveWindow(GetDlgItem(b->hwnd, IDC_BATCH_TITLE), m, S(b, 11),
                w - 2 * m, titleH, TRUE);
-    int listTop = S(b, 48);
-    int footerTop = h - S(b, 87);
-    int listH = (std::max)(S(b, 140), footerTop - listTop);
+    const int listTop = S(b, 48);
+    const int detailH = S(b, 64);
+    const int footerH = S(b, 6 + 64 + 8 + 29 + 5 + 18 + 12);
+    const int listH = (std::max)(S(b, 120), h - listTop - footerH);
     MoveWindow(b->list, m, listTop, (std::max)(1, w - 2 * m), listH, TRUE);
-    int buttonY = listTop + listH + gap;
+    const int detailY = listTop + listH + S(b, 6);
+    MoveWindow(b->details, m, detailY, (std::max)(1, w - 2 * m), detailH, TRUE);
+    const int buttonY = detailY + detailH + gap;
     int x = m;
     for (const auto& spec : {std::pair<int, int>{IDC_BATCH_ADD_FILES, 92},
                              {IDC_BATCH_ADD_FOLDERS, 104},
@@ -166,29 +252,91 @@ std::wstring BlockersFor(const ScanResult& result) {
     return text;
 }
 
+std::wstring BuildBatchDetails(const BatchState* b, size_t index) {
+    if (index >= b->targets.size()) return L"Select a target to view its details.";
+    std::wstring text = L"Target: " + b->targets[index];
+    if (index >= b->results.size() || !b->results[index].completed) {
+        if (b->busy)
+            text += (index == b->completedCount) ? L"\r\nScanning..."
+                                                  : L"\r\nQueued for scanning";
+        else
+            text += L"\r\nNot scanned";
+        return text;
+    }
+
+    const BatchEntry& entry = b->results[index];
+    const ScanResult& scan = entry.scan;
+    text += L"\r\nStatus: " + StatusFor(scan);
+    text += L"  |  Scan: " + std::to_wstring(entry.elapsedMs) + L" ms";
+    if (!scan.targetExists) return text;
+    text += L"\r\nDelete-share: ";
+    text += scan.deleteShareProbeSucceeded ? L"available" :
+        L"not verified (Win32 " + std::to_wstring(scan.deleteShareProbeError) + L")";
+    if (scan.processes.empty()) {
+        text += L"\r\n" + BlockersFor(scan);
+    } else {
+        text += L"\r\nKnown blocking processes:";
+        for (const auto& process : scan.processes) {
+            text += L"\r\n  " + process.name +
+                    L" (PID " + std::to_wstring(process.pid) + L")";
+            for (const auto& locked : process.lockedObjects) {
+                text += L"\r\n    " + locked;
+            }
+        }
+    }
+    if (scan.inaccessibleProcessCount)
+        text += L"\r\nUninspected file-handle owners: " +
+                std::to_wstring(scan.inaccessibleProcessCount);
+    return text;
+}
+
+void RefreshBatchSelection(BatchState* b) {
+    if (!b || !b->details) return;
+    const int row = ListView_GetNextItem(b->list, -1, LVNI_SELECTED);
+    std::wstring detail = row >= 0 ?
+        BuildBatchDetails(b, static_cast<size_t>(row)) :
+        L"Select a target to view its full path and scan details.";
+    SetWindowTextW(b->details, detail.c_str());
+    EnableWindow(GetDlgItem(b->hwnd, IDC_BATCH_OPEN), !b->busy && row >= 0);
+}
+
+void RefreshBatchRow(BatchState* b, size_t i) {
+    if (!b || i >= b->targets.size()) return;
+    std::wstring status = b->busy ?
+        (i == b->completedCount ? L"Scanning..." : L"Queued") :
+        L"Not scanned";
+    std::wstring blockers = L"—";
+    std::wstring duration;
+    if (i < b->results.size() && b->results[i].completed) {
+        status = StatusFor(b->results[i].scan);
+        blockers = BlockersFor(b->results[i].scan);
+        duration = std::to_wstring(b->results[i].elapsedMs) + L" ms";
+    }
+    ListView_SetItemText(b->list, static_cast<int>(i), 1, status.data());
+    ListView_SetItemText(b->list, static_cast<int>(i), 2, blockers.data());
+    ListView_SetItemText(b->list, static_cast<int>(i), 3, duration.data());
+}
+
 void RefreshBatchRows(BatchState* b) {
     if (!b || !b->list) return;
+    const int oldSelection = ListView_GetNextItem(b->list, -1, LVNI_SELECTED);
     ListView_DeleteAllItems(b->list);
     for (size_t i = 0; i < b->targets.size(); ++i) {
         LVITEMW item{};
         item.mask = LVIF_TEXT;
         item.iItem = static_cast<int>(i);
         item.pszText = const_cast<LPWSTR>(b->targets[i].c_str());
-        int row = ListView_InsertItem(b->list, &item);
-        std::wstring status = b->busy ? L"Scanning..." : L"Not scanned";
-        std::wstring blockers = L"—";
-        std::wstring duration;
-        if (!b->busy && i < b->results.size()) {
-            status = StatusFor(b->results[i].scan);
-            blockers = BlockersFor(b->results[i].scan);
-            duration = std::to_wstring(b->results[i].elapsedMs) + L" ms";
-        }
-        ListView_SetItemText(b->list, row, 1, status.data());
-        ListView_SetItemText(b->list, row, 2, blockers.data());
-        ListView_SetItemText(b->list, row, 3, duration.data());
+        ListView_InsertItem(b->list, &item);
+        RefreshBatchRow(b, i);
     }
-    EnableWindow(GetDlgItem(b->hwnd, IDC_BATCH_OPEN),
-                 !b->busy && ListView_GetNextItem(b->list, -1, LVNI_SELECTED) >= 0);
+    if (!b->targets.empty()) {
+        const int selected = oldSelection >= 0 &&
+            static_cast<size_t>(oldSelection) < b->targets.size() ?
+            oldSelection : 0;
+        ListView_SetItemState(b->list, selected,
+                              LVIS_SELECTED, LVIS_SELECTED);
+    }
+    RefreshBatchSelection(b);
 }
 
 void SetBatchBusy(BatchState* b, bool busy) {
@@ -209,9 +357,11 @@ void StartBatchScan(BatchState* b) {
     const auto generation = ++gNextGeneration;
     b->generation = generation;
     b->results.clear();
+    b->results.resize(targets.size());
+    b->completedCount = 0;
     SetBatchBusy(b, true);
     RefreshBatchRows(b);
-    const std::wstring status = L"Scanning " +
+    const std::wstring status = L"Scanning 0 / " +
         std::to_wstring(targets.size()) + L" targets (read-only)...";
     SetWindowTextW(b->status, status.c_str());
 
@@ -225,6 +375,16 @@ void StartBatchScan(BatchState* b) {
             const ULONGLONG started = GetTickCount64();
             entry.scan = ScanLocks(path);
             entry.elapsedMs = GetTickCount64() - started;
+            entry.completed = true;
+            if (ticket->load()) return;
+            auto progress = std::make_unique<BatchProgressPayload>();
+            progress->generation = generation;
+            progress->index = payload->entries.size();
+            progress->entry = entry;
+            if (PostMessageW(hwnd, WM_BATCH_PROGRESS, 0,
+                             reinterpret_cast<LPARAM>(progress.get()))) {
+                progress.release();
+            }
             payload->entries.push_back(std::move(entry));
         }
         if (!ticket->load() &&
@@ -352,7 +512,8 @@ LRESULT CALLBACK BatchWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
             0, 0, 0, 0, hwnd, BatchId(IDC_BATCH_LIST), nullptr, nullptr);
         ListView_SetExtendedListViewStyle(b->list,
-            LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_LABELTIP);
+            LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER |
+            LVS_EX_LABELTIP | LVS_EX_INFOTIP);
         const wchar_t* headers[] = {L"Target", L"Status", L"Locking processes", L"Time"};
         const int widths[] = {350, 125, 280, 90};
         for (int i = 0; i < 4; ++i) {
@@ -363,6 +524,18 @@ LRESULT CALLBACK BatchWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             column.iSubItem = i;
             ListView_InsertColumn(b->list, i, &column);
         }
+        if (HWND header = ListView_GetHeader(b->list)) {
+            SetWindowSubclass(header, BatchHeaderSubclassProc, 1,
+                              reinterpret_cast<DWORD_PTR>(b));
+        }
+        if (HWND tooltip = ListView_GetToolTips(b->list)) {
+            SendMessageW(tooltip, TTM_SETMAXTIPWIDTH, 0, S(b, 720));
+        }
+        b->details = CreateWindowExW(0, L"EDIT",
+            L"Select a target to view its full path and scan details.",
+            WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL |
+            ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL,
+            0, 0, 0, 0, hwnd, BatchId(IDC_BATCH_DETAILS), nullptr, nullptr);
         const std::pair<int, const wchar_t*> buttons[] = {
             {IDC_BATCH_ADD_FILES, L"Add files..."},
             {IDC_BATCH_ADD_FOLDERS, L"Add folders..."},
@@ -413,9 +586,23 @@ LRESULT CALLBACK BatchWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     case WM_CTLCOLORSTATIC:
         if (b) {
             HDC dc = reinterpret_cast<HDC>(wParam);
+            if (reinterpret_cast<HWND>(lParam) == b->details) {
+                SetTextColor(dc, b->palette.text);
+                SetBkColor(dc, b->palette.surface);
+                return reinterpret_cast<LRESULT>(b->surface);
+            }
             SetBkMode(dc, TRANSPARENT);
             SetTextColor(dc, b->palette.text);
             return reinterpret_cast<LRESULT>(b->background);
+        }
+        break;
+
+    case WM_CTLCOLOREDIT:
+        if (b) {
+            HDC dc = reinterpret_cast<HDC>(wParam);
+            SetTextColor(dc, b->palette.text);
+            SetBkColor(dc, b->palette.surface);
+            return reinterpret_cast<LRESULT>(b->surface);
         }
         break;
 
@@ -479,9 +666,17 @@ LRESULT CALLBACK BatchWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             const auto* hdr = reinterpret_cast<const NMHDR*>(lParam);
             if (hdr && hdr->hwndFrom == b->list) {
                 if (hdr->code == LVN_ITEMCHANGED) {
-                    EnableWindow(GetDlgItem(hwnd, IDC_BATCH_OPEN),
-                        !b->busy &&
-                        ListView_GetNextItem(b->list, -1, LVNI_SELECTED) >= 0);
+                    RefreshBatchSelection(b);
+                } else if (hdr->code == LVN_GETINFOTIPW) {
+                    auto* info = reinterpret_cast<NMLVGETINFOTIPW*>(lParam);
+                    if (info && info->iItem >= 0 && info->pszText &&
+                        info->cchTextMax > 0) {
+                        const std::wstring tooltip =
+                            BuildBatchDetails(b, static_cast<size_t>(info->iItem));
+                        wcsncpy_s(info->pszText,
+                                  static_cast<size_t>(info->cchTextMax),
+                                  tooltip.c_str(), _TRUNCATE);
+                    }
                 } else if (hdr->code == NM_DBLCLK && !b->busy) {
                     OpenSelectedTarget(b);
                 }
@@ -503,10 +698,30 @@ LRESULT CALLBACK BatchWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         return 0;
     }
 
+    case WM_BATCH_PROGRESS: {
+        std::unique_ptr<BatchProgressPayload> progress(
+            reinterpret_cast<BatchProgressPayload*>(lParam));
+        if (!b || !progress || progress->generation != b->generation ||
+            progress->index >= b->targets.size()) return 0;
+        b->results[progress->index] = std::move(progress->entry);
+        b->completedCount = progress->index + 1;
+        RefreshBatchRow(b, progress->index);
+        if (b->completedCount < b->targets.size()) {
+            RefreshBatchRow(b, b->completedCount);
+        }
+        RefreshBatchSelection(b);
+        const std::wstring status = L"Scanning " +
+            std::to_wstring(b->completedCount) + L" / " +
+            std::to_wstring(b->targets.size()) + L" targets (read-only)...";
+        SetWindowTextW(b->status, status.c_str());
+        return 0;
+    }
+
     case WM_BATCH_DONE: {
         std::unique_ptr<BatchPayload> payload(reinterpret_cast<BatchPayload*>(lParam));
         if (!b || !payload || payload->generation != b->generation) return 0;
         b->results = std::move(payload->entries);
+        b->completedCount = b->results.size();
         SetBatchBusy(b, false);
         RefreshBatchRows(b);
         size_t locked = 0, clean = 0, missing = 0, review = 0;
@@ -535,6 +750,18 @@ LRESULT CALLBACK BatchWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             if (b->cancelled) b->cancelled->store(true);
             b->generation = 0;
             DragAcceptFiles(hwnd, FALSE);
+            if (HWND header = ListView_GetHeader(b->list)) {
+                RemoveWindowSubclass(header, BatchHeaderSubclassProc, 1);
+            }
+            // Release completed worker messages that were posted before close.
+            MSG pending{};
+            while (PeekMessageW(&pending, hwnd, WM_BATCH_DONE,
+                                WM_BATCH_PROGRESS, PM_REMOVE)) {
+                if (pending.message == WM_BATCH_DONE)
+                    delete reinterpret_cast<BatchPayload*>(pending.lParam);
+                else if (pending.message == WM_BATCH_PROGRESS)
+                    delete reinterpret_cast<BatchProgressPayload*>(pending.lParam);
+            }
             if (b->font) DeleteObject(b->font);
             if (b->titleFont) DeleteObject(b->titleFont);
             if (b->background) DeleteObject(b->background);

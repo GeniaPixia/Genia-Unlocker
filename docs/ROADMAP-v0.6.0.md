@@ -18,7 +18,8 @@ If a feature does neither, it does not belong in v0.6.0.
 - [x] Read-only Batch window with isolated per-target results.
 - [x] Multiple file/folder selection and multi-drop entry point.
 - [x] Open a Batch row in the existing single-target UI.
-- [ ] Per-target details, progress updates and cancellation UI.
+- [x] Per-target details and progress updates (UI Polish 1).
+- [ ] Explicit cancellation control and additional Batch diagnostics.
 - [ ] Destructive Batch actions (require a separate safety review and Windows tests).
 
 ## Phase 1 — Multi-target / Batch
