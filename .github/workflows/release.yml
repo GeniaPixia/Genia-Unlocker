@@ -54,8 +54,8 @@ jobs:
           }
 
           if ($env:GITHUB_EVENT_NAME -eq "push" -and
-              $env:GITHUB_REF -ne "refs/tags/v0.6.0") {
-            throw "Unexpected release tag."
+              $env:GITHUB_REF -notin @("refs/tags/v0.6.0", "refs/heads/v0.6.0-dev")) {
+            throw "Unexpected release ref."
           }
 
           $stage = Join-Path $PWD "release-stage"
