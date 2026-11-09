@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v0.6.0"
+    branches:
+      - "v0.6.0-dev"
   workflow_dispatch:
 
 permissions:
