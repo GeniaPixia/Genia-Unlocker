@@ -26,7 +26,7 @@ BEGIN
             VALUE "OriginalFilename", "GeniaUnlocker.exe\0"
             VALUE "ProductName", "Genia Unlocker\0"
             VALUE "LegalCopyright", "Copyright © 2026 GeniaPixia\0"
-            VALUE "ProductVersion", "0.6.0 Dev\0"
+            VALUE "ProductVersion", "0.6.0 Final\0"
         END
     END
     BLOCK "VarFileInfo"

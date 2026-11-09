@@ -35,7 +35,7 @@ namespace {
 
 constexpr wchar_t kWindowClass[] = L"GeniaUnlockerWindow";
 constexpr wchar_t kWindowTitle[] = L"Genia Unlocker";
-constexpr wchar_t kAppVersionDisplay[] = L"0.6.0 Dev";
+constexpr wchar_t kAppVersionDisplay[] = L"0.6.0 Final";
 constexpr wchar_t kRepositoryUrl[] = L"https://github.com/GeniaPixia/Genia-Unlocker";
 constexpr wchar_t kIssuesUrl[] = L"https://github.com/GeniaPixia/Genia-Unlocker/issues/new";
 constexpr wchar_t kSettingsWindowClass[] = L"GeniaUnlockerSettingsWindow";

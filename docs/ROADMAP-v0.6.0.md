@@ -2,7 +2,7 @@
 
 Development branch: `v0.6.0-dev`
 
-Baseline: `v0.5.0 Final` remains frozen on `main`.
+Baseline: v0.5.0 Final remains preserved by its original release tag; v0.6.0 Final ships the read-only Batch milestone.
 
 ## Product rule
 
@@ -12,6 +12,12 @@ Every v0.6.0 feature must do at least one of two things:
 2. Explain a lock/delete failure more clearly.
 
 If a feature does neither, it does not belong in v0.6.0.
+
+## v0.6.0 Final scope
+
+v0.6.0 Final ships read-only Batch Scan with UI Polish 1.
+Standalone CLI, extended failure classification and all destructive Batch
+operations are deferred to future versions; they are not in this release.
 
 ## Phase 1 implementation status
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.0 Final — 2026-11-09
+
+### Added
+- Read-only Batch Scan for up to 64 unique file/folder targets.
+- Multiple files/folders can be selected or dragged into the window.
+- Per-target asynchronous results with progressive status, blocker PIDs and scan timing.
+- Dark/light-themed Batch table, complete-path hover details and selection pane.
+- Open selected / double-click bridges to the original single-target workflow.
+
+### Release scope
+- No bulk Unlock, Force Unlock, Terminate or Delete; no kernel driver/service.
+- Previous single-target scanner and actions retain v0.5.0 behavior.
+- CI PASS and real Windows Batch/Word navigation/Unlock verification.
+- Author and repository links use GeniaPixia.
+- EXE FileVersion 0.6.0.0 and ProductVersion 0.6.0 Final.
+- CLI and extended failure classification are deferred.
+
+
 ## 0.5.0 Final — 2026-10-05
 
 ### Added

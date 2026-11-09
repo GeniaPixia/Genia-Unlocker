@@ -1,6 +1,20 @@
-# Genia Unlocker 0.5.0 — Final
+# Genia Unlocker 0.6.0 — Final
 
 A lightweight native Windows file/folder unlocker built for **Visual Studio 2026**, x64 and the current Windows 11 SDK.
+
+## v0.6.0 Final
+
+**What's new:** Read-only **Batch Scan** for up to 64 files or folders.
+Select multiple items or drag them into the main window, see individual
+Clean / Locked / Locked (unknown) / Missing / Review results, blocking
+processes, PIDs, full paths, per-target scan times and progressive updates.
+The list and details follow the dark/light Flat UX theme.
+
+Double-click a target or choose **Open selected** to switch to the established
+single-target Unlock/Delete workflow. **Batch itself does not perform any
+mass unlocking, process termination or deletion.**
+
+**[Download the official v0.6.0 Final](https://github.com/GeniaPixia/Genia-Unlocker/releases/tag/v0.6.0)**
 
 ## v0.5.0 Final
 
@@ -39,22 +53,9 @@ The screenshots show the native Win32 interface and a real lock-detection test u
 
 ## Development
 
-The latest stable release is **v0.5.0 Final**. Active development continues in [`v0.6.0-dev`](https://github.com/GeniaPixia/Genia-Unlocker/tree/v0.6.0-dev), with the [v0.6.0 roadmap](docs/ROADMAP-v0.6.0.md) covering multi-target batch operations, CLI support, and extended diagnostics. Development builds are not official releases.
-
-### v0.6.0 Dev — Batch scanner preview
-
-The `v0.6.0-dev` branch contains a **read-only multi-target Batch scanner**.
-Use **Batch...** to add multiple files or folders, or drag two or more items onto the
-main window. Each target is scanned independently with the proven Restart Manager
-and native handle scanner. Statuses are Clean / Locked / Locked (unknown) / Missing /
-Review, with known blocking processes and per-target scan timing. The UI now
-updates results progressively, uses a theme-matched table header, and provides full
-paths and scan details via the selection pane and hover tooltip. Double-click a Batch row
-or choose **Open selected** to return to the existing single-target workflow.
-
-**Safety boundary:** the Batch window never invokes Unlock, Force Unlock, Terminate,
-or Delete. This is a development preview, not an official release. Verify on Windows
-before shipping.
+Latest stable release: **v0.6.0 Final**. CLI automation and extended
+failure classification remain ideas for subsequent versions, **not features
+of the v0.6.0 binary**. See the [roadmap](docs/ROADMAP-v0.6.0.md).
 
 ## Portable policy
 
